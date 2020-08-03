@@ -20,8 +20,8 @@ export const getPackageType = (typeValue: number) => typeValue & 0b11;
 export const getTypeValue = (type: number, subtype: number) => (subtype << 2) | type;
 export const getSubType = (typeValue: number) => ((typeValue & 0b11111100) >> 2);
 
-const mutexBuffer = new SharedArrayBuffer(32);
-const mutex = new Int32Array(mutexBuffer);
+// const mutexBuffer = new SharedArrayBuffer(32);
+// const mutex = new Int32Array(mutexBuffer);
 
 const gattWrite = (data: Uint8Array, writeCharacteristic: any) => {
   writeCharacteristic.writeValue(data);
@@ -231,7 +231,7 @@ export const postContainData = async (encrypt: boolean, checksum: boolean, requi
     console.log('Valid Buffer Size: ', postBytes.length)
 
     gattWrite(postBytes, writeCharacteristic);
-    // sleep here since this is in a while loop 
+    // sleep here since this is in a while loop
     await sleep(1000);
 
     // return postBytes;
