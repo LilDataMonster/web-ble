@@ -1,0 +1,43 @@
+version: '3.7'
+
+services:
+  web-ble:
+    image: docker.pkg.github.com/lildatamonster/web-ble/web-ble:alpine
+    environment:
+      - CI=true
+    #ports:
+    #  - "3000:3000"
+    networks:
+      - default
+      - traefik-public
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      labels:
+        traefik.enable: 'true'
+
+        # network setup
+        traefik.docker.network: 'traefik-public'
+        traefik.http.services.web-ble-service.loadbalancer.server.port: '3000'
+
+        # http redirect
+        traefik.http.routers.web-ble-http-router.entrypoints: 'http'
+        traefik.http.routers.web-ble-http-router.rule: 'Host(`web-ble.lildata.monster`)'
+        traefik.http.routers.web-ble-http-router.middlewares: 'influxdb-redirect'
+        traefik.http.middlewares.web-ble-redirect.redirectscheme.scheme: 'https'
+
+        # https
+        traefik.http.routers.web-ble-https-router.entrypoints: 'https'
+        traefik.http.routers.web-ble-https-router.rule: 'Host(`web-ble.lildata.monster`)'
+        traefik.http.routers.web-ble-https-router.tls: 'true'
+        traefik.http.routers.web-ble-https-router.tls.certresolver: 'letsencrypt_resolver'
+
+        # authentication
+        #traefik.http.routers.web-ble-https-router.middlewares: 'telegraf-auth'
+        #traefik.http.middlewares.web-ble-auth.basicauth.users: 'ldm:$$apr1$$2lYIhk0A$$rN7iapC3frLW3vIdEpnCf1'
+  
+networks:
+  default:
+  traefik-public:
+    external: true
