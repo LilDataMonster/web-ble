@@ -36,6 +36,18 @@ type DataType = {
   readonly SUBTYPE_CUSTOM_DATA: number;
 }
 
+type LDMDataType = {
+  readonly UUID_SERVICE: string;
+  readonly MAC_CHARACTERISTIC: string;
+  readonly IP_CHARACTERISTIC: string;
+}
+
+export const LDMData: LDMDataType = {
+  UUID_SERVICE: "4c444d00-0000-1000-8000-00805f9b34fb",
+  MAC_CHARACTERISTIC: "00004d01-0000-1000-8000-00805f9b34fb",
+  IP_CHARACTERISTIC: "00004d02-0000-1000-8000-00805f9b34fb"
+}
+
 type BlufiType = {
   readonly UUID_SERVICE: string;
   readonly UUID_WRITE_CHARACTERISTIC: string;

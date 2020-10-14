@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import logo from './logo.png';
 import './App.css';
-import BlufiParam from './espConsts';
+import { BlufiParam, LDMData } from './espConsts';
 import { postDeviceMode, postStaWifiInfo } from './utils';
 
 function App() {
   const [SSID, setSSID] = useState("");
   const [password, setPassword] = useState("");
+
+  const [mac, setMac] = useState("");
+  const [ipv4, setIpv4] = useState("");
 
   const [bleAvaliable, setBleAvaliable] = useState(false);
   const [gattServer, setGattServer] = useState(null);
@@ -33,12 +36,12 @@ function App() {
       // }],
       acceptAllDevices: true,
       // optionalServices: ['generic_access']
-      optionalServices: [BlufiParam.UUID_SERVICE]
+      optionalServices: [BlufiParam.UUID_SERVICE, LDMData.UUID_SERVICE]
     };
     // console.log(navigator.bluetooth);
     const device = navigator.bluetooth.requestDevice(options);
     return device.then((device)=>{
-      // console.log("BLE Scan: ", device);
+      console.log("BLE Scan: ", device);
 
       device.addEventListener('gattserverdisconnected', onDisconnected);
       setDevice(device);
@@ -183,7 +186,7 @@ function App() {
     //   })
   }
 
-  const listServices = () => {
+  const listBluFiServices = () => {
     if(!device || !gattServer){
       setDevice(null);
       setGattServer(null);
@@ -216,6 +219,58 @@ function App() {
           // }));
         // });
     })
+  }
+
+  const listLDMServices = () => {
+    if(!device || !gattServer){
+      setDevice(null);
+      setGattServer(null);
+      console.log("Connect: No device selected");
+      return "Device is not connected";
+    }
+
+    gattServer.getPrimaryService(LDMData.UUID_SERVICE)
+      .then(service => service.getCharacteristic(LDMData.MAC_CHARACTERISTIC))
+      .then(characteristic => characteristic.readValue())
+      .then(mac => setMac(Buffer.from(mac.buffer).toString('hex')));
+
+    gattServer.getPrimaryService(LDMData.UUID_SERVICE)
+      .then(service => service.getCharacteristic(LDMData.IP_CHARACTERISTIC))
+      .then(characteristic => characteristic.readValue())
+      .then(ipv4 => setIpv4((new Uint8Array(ipv4.buffer)).join(".")));
+
+    return;
+
+    // return gattServer != null && gattServer.getPrimaryService(LDMData.UUID_SERVICE)
+    //   .then(services => {
+    //     console.log(services)
+    //   })
+
+    // return gattServer != null && gattServer.getPrimaryService(LDMData.UUID_SERVICE)
+    //   .then(service => {
+    //     console.log(service)
+    //
+    //     service.getCharacteristics().then(characteristics => {
+    //       console.log('> Service: ' + service.uuid);
+    //       characteristics.forEach(characteristic => {
+    //         console.log('>> Characteristic: ' + characteristic.uuid + ' ' +
+    //             getSupportedProperties(characteristic));
+    //       });
+    //     })
+    //   .catch(error => console.log("Error: ", error));
+        // let queue = Promise.resolve();
+
+        // services.forEach(service => {
+        //   console.log(service);
+          // queue = queue.then(_ => service.getCharacteristics().then(characteristics => {
+          //   console.log('> Service: ' + service.uuid);
+          //   characteristics.forEach(characteristic => {
+          //     console.log('>> Characteristic: ' + characteristic.uuid + ' ' +
+          //         getSupportedProperties(characteristic));
+          //   });
+          // }));
+        // });
+    // })
   }
 
   const disconnect = () => {
@@ -260,6 +315,8 @@ function App() {
              Notifications: {notification} <br />
              SSID: {SSID} <br />
              Password: {password} <br />
+             MAC Address: {mac} <br />
+             IPV4 Address: {ipv4} <br />
           </p>
           <form onSubmit={() => {/*handleSubmit*/}}>
            <label>
@@ -283,8 +340,11 @@ function App() {
         <button onClick={connect} disabled={connected || !device}>
           Connect BLE Device
         </button>
-        <button onClick={listServices} disabled={!connected || !device}>
-          List GATT Services
+        <button onClick={listBluFiServices} disabled={!connected || !device}>
+          List BluFi GATT Services
+        </button>
+        <button onClick={listLDMServices} disabled={!connected || !device}>
+          List LDM Data GATT Services
         </button>
         <button onClick={writeModeMessage} disabled={!connected || !device}>
           Write Message to BLE Device
