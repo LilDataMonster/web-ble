@@ -8,8 +8,14 @@ function App() {
   const [SSID, setSSID] = useState("");
   const [password, setPassword] = useState("");
 
+  const [littleEndian, setLittleEndian] = useState(true);
+
   const [mac, setMac] = useState("");
   const [ipv4, setIpv4] = useState("");
+  const [humidity, setHumidity] = useState(0);
+  const [temperature, setTemperature] = useState(0);
+  const [pressure, setPressure] = useState(0);
+  const [gas, setGas] = useState(0);
 
   const [bleAvaliable, setBleAvaliable] = useState(false);
   const [gattServer, setGattServer] = useState(null);
@@ -230,47 +236,50 @@ function App() {
     }
 
     gattServer.getPrimaryService(LDMData.UUID_SERVICE)
+      .then(service => {
+        console.log(service)
+
+        service.getCharacteristics().then(characteristics => {
+          console.log('> Service: ' + service.uuid);
+          characteristics.forEach(characteristic => {
+            console.log('>> Characteristic: ' + characteristic.uuid + ' ' +
+                getSupportedProperties(characteristic));
+          });
+        })
+      .catch(error => console.log("Error: ", error));
+    })
+
+    gattServer.getPrimaryService(LDMData.UUID_SERVICE)
       .then(service => service.getCharacteristic(LDMData.MAC_CHARACTERISTIC))
       .then(characteristic => characteristic.readValue())
-      .then(mac => setMac(Buffer.from(mac.buffer).toString('hex')));
+      .then(mac => setMac(Buffer.from(mac.buffer).toString('hex')))
+    .catch(error => console.log("Error: ", error));
 
     gattServer.getPrimaryService(LDMData.UUID_SERVICE)
       .then(service => service.getCharacteristic(LDMData.IP_CHARACTERISTIC))
       .then(characteristic => characteristic.readValue())
-      .then(ipv4 => setIpv4((new Uint8Array(ipv4.buffer)).join(".")));
+      .then(ipv4 => setIpv4((new Uint8Array(ipv4.buffer)).join(".")))
+    .catch(error => console.log("Error: ", error));
+
+    gattServer.getPrimaryService(LDMData.UUID_SERVICE)
+      .then(service => service.getCharacteristic(LDMData.BME680_CHARACTERISTIC))
+      .then(characteristic => characteristic.readValue())
+      .then(bme680_data => {
+
+        // get data as float with 32-bit offsets
+        const _humidity = bme680_data.getFloat32(0, littleEndian);
+        const _temperature = bme680_data.getFloat32(4, littleEndian);
+        const _pressure = bme680_data.getFloat32(8, littleEndian);
+        const _gas = bme680_data.getFloat32(12, littleEndian);
+
+        setHumidity(_humidity);
+        setTemperature(_temperature);
+        setPressure(_pressure);
+        setGas(_gas);
+      })
+    .catch(error => console.log("Error: ", error));
 
     return;
-
-    // return gattServer != null && gattServer.getPrimaryService(LDMData.UUID_SERVICE)
-    //   .then(services => {
-    //     console.log(services)
-    //   })
-
-    // return gattServer != null && gattServer.getPrimaryService(LDMData.UUID_SERVICE)
-    //   .then(service => {
-    //     console.log(service)
-    //
-    //     service.getCharacteristics().then(characteristics => {
-    //       console.log('> Service: ' + service.uuid);
-    //       characteristics.forEach(characteristic => {
-    //         console.log('>> Characteristic: ' + characteristic.uuid + ' ' +
-    //             getSupportedProperties(characteristic));
-    //       });
-    //     })
-    //   .catch(error => console.log("Error: ", error));
-        // let queue = Promise.resolve();
-
-        // services.forEach(service => {
-        //   console.log(service);
-          // queue = queue.then(_ => service.getCharacteristics().then(characteristics => {
-          //   console.log('> Service: ' + service.uuid);
-          //   characteristics.forEach(characteristic => {
-          //     console.log('>> Characteristic: ' + characteristic.uuid + ' ' +
-          //         getSupportedProperties(characteristic));
-          //   });
-          // }));
-        // });
-    // })
   }
 
   const disconnect = () => {
@@ -317,8 +326,23 @@ function App() {
              Password: {password} <br />
              MAC Address: {mac} <br />
              IPV4 Address: {ipv4} <br />
+         </p>
+         <p align="left">
+             Humidity: {humidity} <br />
+             Temperature: {temperature} <br />
+             Pressure: {pressure} <br />
+             Gas: {gas} <br />
           </p>
           <form onSubmit={() => {/*handleSubmit*/}}>
+          <label>
+            Fetch Data as Little-Endian:
+            <input
+              name="littleEndian"
+              type="checkbox"
+              checked={littleEndian}
+              onChange={event => setLittleEndian(event.target.checked)} />
+          </label>
+          <br/>
            <label>
              SSID:
              <input type="text" value={SSID} onChange={(e) => setSSID(e.target.value)} />
