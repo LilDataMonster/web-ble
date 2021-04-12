@@ -16,6 +16,7 @@ function App() {
   const [temperature, setTemperature] = useState(0);
   const [pressure, setPressure] = useState(0);
   const [gas, setGas] = useState(0);
+  const [bmeNotify, setBmeNotify] = useState(false);
 
   const [bleAvaliable, setBleAvaliable] = useState(false);
   const [gattServer, setGattServer] = useState(null);
@@ -146,6 +147,52 @@ function App() {
     // console.log('Writing SSID: ', configurationParams.ssid)
     // console.log('Writing password: ', configurationParams.ssidPassword)
     postStaWifiInfo(configurationParams, writeCharacteristic);
+  }
+
+  const handleBmeNotifications = (event) => {
+    let bme680_data = event.target.value;
+
+    // get data as float with 32-bit offsets
+    const _humidity = bme680_data.getFloat32(0, littleEndian);
+    const _temperature = bme680_data.getFloat32(4, littleEndian);
+    const _pressure = bme680_data.getFloat32(8, littleEndian);
+    const _gas = bme680_data.getFloat32(12, littleEndian);
+
+    setHumidity(_humidity);
+    setTemperature(_temperature);
+    setPressure(_pressure);
+    setGas(_gas);
+  }
+
+  const enableBmeNotifications = () => {
+    if(!device || !gattServer){
+      setDevice(null);
+      setGattServer(null);
+      console.log("Connect: No device selected");
+      return "Device is not connected";
+    }
+
+    gattServer.getPrimaryService(LDMData.UUID_SERVICE)
+      .then(service => service.getCharacteristic(LDMData.BME680_CHARACTERISTIC))
+      .then(characteristic => characteristic.startNotifications())
+      .then(characteristic => {
+        console.log('> Notifications enabled');
+        characteristic.addEventListener('characteristicvaluechanged', handleBmeNotifications);
+        setBmeNotify(true);
+      })
+    .catch(error => console.log("Error: ", error));
+  }
+
+  const disableBmeNotifications = () => {
+    gattServer.getPrimaryService(LDMData.UUID_SERVICE)
+      .then(service => service.getCharacteristic(LDMData.BME680_CHARACTERISTIC))
+      .then(characteristic => characteristic.stopNotifications())
+      .then(characteristic => {
+        console.log('> Notifications disabled');
+        characteristic.removeEventListener('characteristicvaluechanged', handleBmeNotifications);
+        setBmeNotify(false);
+      })
+    .catch(error => console.log("Error: ", error));
   }
 
   const writeModeMessage = () => {
@@ -373,6 +420,14 @@ function App() {
         <button onClick={writeModeMessage} disabled={!connected || !device}>
           Write Message to BLE Device
         </button>
+        { !bmeNotify && <button onClick={enableBmeNotifications} disabled={!connected || !device}>
+          Enable BME680 Notifications
+        </button>
+        }
+        { bmeNotify && <button onClick={disableBmeNotifications} disabled={!connected || !device}>
+          Disable BME680 Notifications
+        </button>
+        }
         <button onClick={writeConfigureMessage} disabled={!connected || !device}>
           Write SSID/Password
         </button>
