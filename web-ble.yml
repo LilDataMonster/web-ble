@@ -2,7 +2,7 @@ version: '3.7'
 
 services:
   web-ble:
-    image: docker.pkg.github.com/lildatamonster/web-ble/web-ble:alpine-0.02
+    image: docker.pkg.github.com/lildatamonster/web-ble/web-ble:alpine-0.03
     environment:
       - CI=true
     #ports:
@@ -24,7 +24,7 @@ services:
         # http redirect
         traefik.http.routers.web-ble-http-router.entrypoints: 'http'
         traefik.http.routers.web-ble-http-router.rule: 'Host(`web-ble.lildata.monster`)'
-        traefik.http.routers.web-ble-http-router.middlewares: 'influxdb-redirect'
+        traefik.http.routers.web-ble-http-router.middlewares: 'web-ble-redirect'
         traefik.http.middlewares.web-ble-redirect.redirectscheme.scheme: 'https'
 
         # https
